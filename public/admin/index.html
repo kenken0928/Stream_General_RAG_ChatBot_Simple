@@ -1,0 +1,517 @@
+<!-- public/admin/index.html -->
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Simple RAG Chat</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div><strong>Simple RAG Chat</strong></div>
+      <div class="right">
+        <a href="/">Top</a>
+        <a href="/chat/">Chat</a>
+        <a href="/admin/login/">Admin Login</a>
+        <a href="/admin/logout/">Admin Logout</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>管理画面（PoC）</h2>
+      <p id="status" class="small">状態: 確認中...</p>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <!-- LEFT -->
+        <div class="card">
+          <h2>現在のR2内容（先頭表示）</h2>
+          <button id="previewBtn" class="btn primary">Preview</button>
+          <pre id="preview" class="chatbox" style="height:260px;margin-top:10px;"></pre>
+          <p class="small" style="margin-top:10px;">
+            Previewは「R2に保存されている内容」です。各セクションの「保存」を押すと、次のチャットから即反映されます。
+          </p>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="card">
+          <h2>管理</h2>
+          <p class="small">
+            4つの領域を独立して保存できます。<br/>
+            「保存」＝R2へ保存（次のチャットから即反映）です。
+          </p>
+
+          <!-- ① CSV -->
+          <details open style="margin-top:10px;">
+            <summary style="font-weight:800;cursor:pointer;">① RAG（CSV / TXT）</summary>
+            <div style="padding-top:10px;">
+
+              <!-- ★追加：TXT貼り付けエリア -->
+              <details style="margin-bottom:12px;">
+                <summary style="font-weight:800;cursor:pointer;">TXT貼り付け（PDF抽出テキスト用）</summary>
+                <div style="padding-top:10px;">
+                  <p class="small">
+                    PDFから抽出したテキストをここに貼り付けてください。<br/>
+                    「整形してCSV欄へ」で、<b>1段落=1行</b> にして下のCSV欄へ入れます。
+                  </p>
+
+                  <label>貼り付け用テキスト（raw）</label>
+                  <textarea id="rawText" rows="10" placeholder="ここにPDFから抽出したテキストを貼り付け…"></textarea>
+
+                  <div class="row" style="margin-top:10px;">
+                    <button id="normalizeBtn" class="btn primary" style="flex:0 0 auto;">整形してCSV欄へ</button>
+                    <button id="clearRawBtn" class="btn" style="flex:0 0 auto;">貼り付け欄をクリア</button>
+                  </div>
+
+                  <p class="small" style="margin-top:8px;">
+                    整形ルール：空行で区切られた塊を1段落として扱い、段落内の改行はスペースにまとめます。<br/>
+                    空行がほぼ無いテキストの場合は「1行=1チャンク」として扱います。
+                  </p>
+                </div>
+              </details>
+
+              <label>CSV/TXTファイル（rag.csvとして保存）</label>
+              <input id="csvFile" type="file" accept=".csv,.txt,text/csv,text/plain" class="input" />
+              <p class="small">
+                .csv でも .txt でもOKです（ブラウザが自動でUTF-8に読み込みます）。<br/>
+                ファイルを選ぶと下のCSV欄に読み込みます。「CSVを保存」でR2へ保存（上書き）します。
+              </p>
+
+              <label>CSV（rag.csv）</label>
+              <textarea id="csv" rows="8" placeholder="1行=1チャンクの形式を推奨"></textarea>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="saveCsvBtn" class="btn primary" style="flex:0 0 auto;">CSVを保存</button>
+                <button id="deleteCsvBtn" class="btn danger" style="flex:0 0 auto;">CSVを削除</button>
+              </div>
+            </div>
+          </details>
+
+          <!-- ② LLM -->
+          <details style="margin-top:12px;">
+            <summary style="font-weight:800;cursor:pointer;">② LLM設定（OpenAI / Gemini / モデル）</summary>
+            <div style="padding-top:10px;">
+              <label>プロバイダ</label>
+              <select id="provider" class="input">
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+              </select>
+
+              <label>OpenAI モデル名</label>
+              <input id="openaiModel" class="input" placeholder="例: gpt-4o-mini" />
+
+              <label>Gemini モデル名</label>
+              <input id="geminiModel" class="input" placeholder="例: gemini-1.5-flash" />
+
+              <div class="row" style="margin-top:10px;">
+                <button id="saveLlmBtn" class="btn primary" style="flex:0 0 auto;">LLM設定を保存</button>
+                <button id="clearLlmBtn" class="btn danger" style="flex:0 0 auto;">LLM設定を初期化</button>
+              </div>
+              <p class="small" style="margin-top:8px;">
+                ここを保存すると、config.json の「llm」だけを書き換えて保存します（他の設定は保持）。
+              </p>
+            </div>
+          </details>
+
+          <!-- ③ Prompt -->
+          <details style="margin-top:12px;">
+            <summary style="font-weight:800;cursor:pointer;">③ プロンプト設定（用途ごとに変更）</summary>
+            <div style="padding-top:10px;">
+              <label>Systemプロンプト（役割・口調・禁止事項など）</label>
+              <textarea id="systemPrompt" rows="6" placeholder="例：あなたは社内ヘルプデスクです。根拠が無いことは断定しないでください。"></textarea>
+
+              <label>回答ルール（1行1ルール）</label>
+              <textarea id="rulesPrompt" rows="5" placeholder="例：&#10;不明なことは不明と言う&#10;できれば箇条書きで&#10;根拠のCSV行を参照して答える"></textarea>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="savePromptBtn" class="btn primary" style="flex:0 0 auto;">プロンプトを保存</button>
+                <button id="deletePromptBtn" class="btn danger" style="flex:0 0 auto;">プロンプトを削除</button>
+              </div>
+              <p class="small" style="margin-top:8px;">
+                ここを保存すると、config.json の「prompt」だけを書き換えて保存します（他の設定は保持）。
+              </p>
+            </div>
+          </details>
+
+          <!-- ④ Advanced config -->
+          <details style="margin-top:12px;">
+            <summary style="font-weight:800;cursor:pointer;">④ 上級者向け：config.json 直接編集</summary>
+            <div style="padding-top:10px;">
+              <p class="small">
+                注意：ここは全体設定を直接編集します。JSONが壊れると動かなくなります。<br/>
+                通常は②③のボタンで十分です。
+              </p>
+
+              <label>config.json</label>
+              <textarea id="config" rows="10" placeholder='例: {"llm":{"provider":"openai","openaiModel":"gpt-4o-mini","geminiModel":"gemini-1.5-flash"},"prompt":{"system":"...","rules":["..."]}}'></textarea>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="saveConfigBtn" class="btn primary" style="flex:0 0 auto;">config.jsonを保存</button>
+                <button id="deleteConfigBtn" class="btn danger" style="flex:0 0 auto;">config.jsonを削除</button>
+              </div>
+            </div>
+          </details>
+
+          <div class="row" style="margin-top:14px;">
+            <a class="btn" href="/" style="flex:0 0 auto;">戻る</a>
+          </div>
+
+          <p id="msg" class="small" style="margin-top:10px;"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiGet, apiPost, $, setText } from "/assets/app.js";
+
+    function safeParseJson(text) {
+      try { return { ok: true, value: JSON.parse(text) }; }
+      catch (e) { return { ok: false, error: String(e) }; }
+    }
+
+    function splitRules(text) {
+      return (text || "")
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    // ★追加：PDF抽出テキスト向け整形（1段落=1行）
+    function normalizeTextToLines(raw) {
+      let t = String(raw || "");
+
+      // 0) 改行コード統一 & 余計な制御文字の軽い掃除
+      t = t.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      t = t.replace(/\u0000/g, "");
+
+      // 1) 前後の空白整理
+      t = t.trim();
+      if (!t) return [];
+
+      // 2) 空行（2行以上の連続）で段落分割
+      const hasBlankLine = /\n\s*\n/.test(t);
+
+      if (hasBlankLine) {
+        const paras = t
+          .split(/\n\s*\n+/)
+          .map(p => p.replace(/\n+/g, " ").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        return paras;
+      }
+
+      // 3) 空行が無い場合：1行=1チャンク扱い（改行で分割）
+      const lines = t
+        .split("\n")
+        .map(l => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+      return lines;
+    }
+
+    // R2上のconfig.jsonを取得して「オブジェクト」として返す（無ければ {}）
+    async function loadConfigObjectFromR2() {
+      const r = await apiGet("/api/admin/preview");
+      const raw = (typeof r.config === "string" && r.config.trim()) ? r.config : "";
+      if (!raw) return {};
+      const parsed = safeParseJson(raw);
+      return parsed.ok ? (parsed.value || {}) : {};
+    }
+
+    // UIフィールド ← config.json
+    function applyConfigObjectToFields(cfg) {
+      const llm = cfg?.llm || {};
+      const prompt = cfg?.prompt || {};
+
+      if (typeof llm.provider === "string") $("provider").value = llm.provider;
+      if (typeof llm.openaiModel === "string") $("openaiModel").value = llm.openaiModel;
+      if (typeof llm.geminiModel === "string") $("geminiModel").value = llm.geminiModel;
+
+      $("systemPrompt").value = typeof prompt.system === "string" ? prompt.system : "";
+      if (Array.isArray(prompt.rules)) $("rulesPrompt").value = prompt.rules.map(String).join("\n");
+      else $("rulesPrompt").value = "";
+    }
+
+    // config textarea ← オブジェクト
+    function setConfigTextareaFromObject(cfg) {
+      $("config").value = JSON.stringify(cfg || {}, null, 2);
+    }
+
+    async function refreshPreviewBox() {
+      const r = await apiGet("/api/admin/preview");
+      $("preview").textContent =
+        `csvKey: ${r.keys.csvKey}\n` +
+        `cfgKey: ${r.keys.cfgKey}\n\n` +
+        `--- CSV (first 50 lines) ---\n${r.csv ?? "(none)"}\n\n` +
+        `--- config.json ---\n${r.config ?? "(none)"}`;
+      return r;
+    }
+
+    async function check() {
+      try {
+        const s = await apiGet("/api/admin/session");
+        setText("status", s.loggedIn ? "ログイン済み" : "未ログイン（/admin/login/ に行ってください）");
+      } catch (e) {
+        setText("status", "状態確認失敗: " + (e?.message || e));
+      }
+    }
+
+    // ---- Handlers ----
+
+    $("previewBtn").addEventListener("click", async () => {
+      setText("msg", "Preview中...");
+      try {
+        const r = await refreshPreviewBox();
+
+        // configがあれば textarea に入れて、フィールドも同期
+        if (typeof r.config === "string" && r.config.trim()) {
+          $("config").value = r.config;
+          const parsed = safeParseJson(r.config);
+          if (parsed.ok) applyConfigObjectToFields(parsed.value || {});
+        }
+
+        setText("msg", "");
+      } catch (e) {
+        setText("msg", "Preview失敗: " + (e?.message || e));
+      }
+    });
+
+    // CSV/TXTファイル読み込み → CSV欄へ
+    $("csvFile").addEventListener("change", async (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+
+      const max = 2 * 1024 * 1024; // 2MB
+      if (file.size > max) {
+        setText("msg", `ファイルが大きすぎます（${Math.round(file.size / 1024)}KB）。最大 ${Math.round(max / 1024)}KB まで。`);
+        ev.target.value = "";
+        return;
+      }
+
+      setText("msg", "ファイルを読み込み中...");
+      try {
+        const text = await file.text(); // ブラウザが文字コードを吸収してくれることが多い
+        $("csv").value = text;
+        setText("msg", `読み込みました: ${file.name}（「CSVを保存」で反映）`);
+      } catch (e) {
+        setText("msg", "読み込み失敗: " + (e?.message || e));
+      }
+    });
+
+    // ★追加：TXT整形 → CSV欄へ
+    $("normalizeBtn").addEventListener("click", async () => {
+      const raw = $("rawText").value;
+      const lines = normalizeTextToLines(raw);
+
+      if (!lines.length) {
+        setText("msg", "貼り付けテキストが空です。");
+        return;
+      }
+
+      // rag.csv は「1行=1チャンク」なので、そのまま改行結合
+      $("csv").value = lines.join("\n");
+      setText("msg", `整形しました（${lines.length}行）。必要なら内容を確認して「CSVを保存」してください。`);
+    });
+
+    $("clearRawBtn").addEventListener("click", async () => {
+      $("rawText").value = "";
+      setText("msg", "貼り付け欄をクリアしました。");
+    });
+
+    // ① CSV保存
+    $("saveCsvBtn").addEventListener("click", async () => {
+      setText("msg", "CSVを保存中...");
+      try {
+        await apiPost("/api/admin/save", { csv: $("csv").value });
+        setText("msg", "CSVを保存しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "CSV保存失敗: " + (e?.message || e));
+      }
+    });
+
+    // ① CSV削除
+    $("deleteCsvBtn").addEventListener("click", async () => {
+      const ok = confirm("R2上のCSV（rag.csv）を削除します。よろしいですか？");
+      if (!ok) return;
+      setText("msg", "CSVを削除中...");
+      try {
+        await apiPost("/api/admin/delete", { target: "csv" });
+        setText("msg", "CSVを削除しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "CSV削除失敗: " + (e?.message || e));
+      }
+    });
+
+    // ② LLM設定保存（config.llmだけ更新して保存）
+    $("saveLlmBtn").addEventListener("click", async () => {
+      setText("msg", "LLM設定を保存中...");
+      try {
+        const cfg = await loadConfigObjectFromR2();
+        cfg.llm = {
+          provider: $("provider").value,
+          openaiModel: ($("openaiModel").value.trim() || "gpt-4o-mini"),
+          geminiModel: ($("geminiModel").value.trim() || "gemini-1.5-flash"),
+        };
+
+        setConfigTextareaFromObject(cfg);
+        await apiPost("/api/admin/save", { config: $("config").value });
+
+        setText("msg", "LLM設定を保存しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "LLM設定の保存失敗: " + (e?.message || e));
+      }
+    });
+
+    // ② LLM設定初期化（config.llmを削除して保存）
+    $("clearLlmBtn").addEventListener("click", async () => {
+      const ok = confirm("LLM設定（provider/model）だけを初期化します。よろしいですか？（次のチャットから即反映）");
+      if (!ok) return;
+
+      setText("msg", "LLM設定を初期化中...");
+      try {
+        const cfg = await loadConfigObjectFromR2();
+        delete cfg.llm;
+
+        setConfigTextareaFromObject(cfg);
+        await apiPost("/api/admin/save", { config: $("config").value });
+
+        // UIも初期値に戻す
+        $("provider").value = "openai";
+        $("openaiModel").value = "gpt-4o-mini";
+        $("geminiModel").value = "gemini-1.5-flash";
+
+        setText("msg", "LLM設定を初期化しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "LLM初期化失敗: " + (e?.message || e));
+      }
+    });
+
+    // ③ プロンプト保存（config.promptだけ更新して保存）
+    $("savePromptBtn").addEventListener("click", async () => {
+      setText("msg", "プロンプトを保存中...");
+      try {
+        const cfg = await loadConfigObjectFromR2();
+
+        const system = $("systemPrompt").value.trim();
+        const rules = splitRules($("rulesPrompt").value);
+
+        if (!system && rules.length === 0) {
+          delete cfg.prompt;
+        } else {
+          cfg.prompt = {};
+          if (system) cfg.prompt.system = system;
+          if (rules.length) cfg.prompt.rules = rules;
+        }
+
+        setConfigTextareaFromObject(cfg);
+        await apiPost("/api/admin/save", { config: $("config").value });
+
+        setText("msg", "プロンプトを保存しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "プロンプト保存失敗: " + (e?.message || e));
+      }
+    });
+
+    // ③ プロンプト削除（config.promptを削除して保存）
+    $("deletePromptBtn").addEventListener("click", async () => {
+      const ok = confirm("プロンプト設定だけを削除します。よろしいですか？（次のチャットから即反映）");
+      if (!ok) return;
+
+      setText("msg", "プロンプトを削除中...");
+      try {
+        const cfg = await loadConfigObjectFromR2();
+        delete cfg.prompt;
+
+        setConfigTextareaFromObject(cfg);
+        await apiPost("/api/admin/save", { config: $("config").value });
+
+        $("systemPrompt").value = "";
+        $("rulesPrompt").value = "";
+
+        setText("msg", "プロンプトを削除しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "プロンプト削除失敗: " + (e?.message || e));
+      }
+    });
+
+    // ④ config.json 直接保存（textareaをそのまま保存）
+    $("saveConfigBtn").addEventListener("click", async () => {
+      setText("msg", "config.jsonを保存中...");
+      try {
+        const t = $("config").value.trim();
+        if (!t) {
+          setText("msg", "config.json が空です。空のまま保存する場合は {} を入れてください。");
+          return;
+        }
+        const parsed = safeParseJson(t);
+        if (!parsed.ok) {
+          setText("msg", "config.json のJSONが壊れています: " + parsed.error);
+          return;
+        }
+
+        await apiPost("/api/admin/save", { config: t });
+
+        applyConfigObjectToFields(parsed.value || {});
+
+        setText("msg", "config.jsonを保存しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "config保存失敗: " + (e?.message || e));
+      }
+    });
+
+    // ④ config.json 削除
+    $("deleteConfigBtn").addEventListener("click", async () => {
+      const ok = confirm("R2上のconfig.jsonを削除します。よろしいですか？（LLM/プロンプト設定が初期状態に戻ります）");
+      if (!ok) return;
+
+      setText("msg", "config.jsonを削除中...");
+      try {
+        await apiPost("/api/admin/delete", { target: "config" });
+
+        $("provider").value = "openai";
+        $("openaiModel").value = "gpt-4o-mini";
+        $("geminiModel").value = "gemini-1.5-flash";
+        $("systemPrompt").value = "";
+        $("rulesPrompt").value = "";
+        $("config").value = "";
+
+        setText("msg", "config.jsonを削除しました。次のチャットから即反映されます。");
+        await refreshPreviewBox();
+      } catch (e) {
+        setText("msg", "config削除失敗: " + (e?.message || e));
+      }
+    });
+
+    // 初期化
+    (async () => {
+      $("provider").value = "openai";
+      $("openaiModel").value = "gpt-4o-mini";
+      $("geminiModel").value = "gemini-1.5-flash";
+      $("systemPrompt").value = "";
+      $("rulesPrompt").value = "";
+      $("rawText").value = "";
+      $("config").value = "";
+
+      await check();
+
+      // 起動時に一度だけR2のconfigを読み、UIへ反映（あれば）
+      try {
+        const cfg = await loadConfigObjectFromR2();
+        if (cfg && Object.keys(cfg).length) {
+          applyConfigObjectToFields(cfg);
+          setConfigTextareaFromObject(cfg);
+        }
+      } catch {
+        // 失敗してもUIは初期値で使える
+      }
+    })();
+  </script>
+</body>
+</html>

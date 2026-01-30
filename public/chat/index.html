@@ -1,0 +1,71 @@
+<!-- public/chat/index.html -->
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chat - Simple RAG Chat</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div><strong>Simple RAG Chat</strong></div>
+      <div class="right">
+        <a href="/">Top</a>
+        <a href="/login/">Login</a>
+        <a href="/logout/">Logout</a>
+        <a href="/admin/">Admin</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>チャット</h2>
+      <p id="status" class="small">状態: 確認中...</p>
+
+      <div id="chatbox" class="chatbox"></div>
+
+      <div class="row">
+        <input id="message" class="input" placeholder="質問を入力..." />
+        <button id="send" class="btn primary" style="flex:0 0 auto;">送信</button>
+      </div>
+      <p id="msg" class="small"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiGet, apiPost, $, setText, appendChat } from "/assets/app.js";
+
+    async function init() {
+      try {
+        const s = await apiGet("/api/session");
+        if (!s.loggedIn) {
+          setText("status", "未ログイン（ログイン画面に差し替え表示される想定）");
+        } else {
+          setText("status", "ログイン済み");
+        }
+      } catch (e) {
+        setText("status", "状態確認失敗: " + (e?.message || e));
+      }
+    }
+
+    $("send").addEventListener("click", async () => {
+      const msg = $("message").value.trim();
+      if (!msg) return;
+      $("message").value = "";
+      appendChat("You: " + msg);
+      setText("msg", "応答中...");
+
+      try {
+        const r = await apiPost("/api/chat", { message: msg });
+        appendChat("Bot: " + (r.answer || ""));
+        setText("msg", "");
+      } catch (e) {
+        setText("msg", "エラー: " + (e?.message || e));
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

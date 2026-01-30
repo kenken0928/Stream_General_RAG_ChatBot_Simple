@@ -1,0 +1,55 @@
+<!-- public/login/index.html -->
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Login - Simple RAG Chat</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div><strong>Simple RAG Chat</strong></div>
+      <div class="right">
+        <a href="/">Top</a>
+        <a href="/chat/">Chat</a>
+        <a href="/admin/">Admin</a>
+      </div>
+    </div>
+
+    <div class="card form">
+      <h2>ユーザーログイン</h2>
+      <p class="small">Cloudflare Variables の LOGIN_USER / LOGIN_PASSWORD を使います。</p>
+
+      <label>ユーザーID</label>
+      <input id="user" class="input" placeholder="LOGIN_USER" />
+
+      <label>パスワード</label>
+      <input id="password" class="input" type="password" placeholder="LOGIN_PASSWORD" />
+
+      <div class="row">
+        <button id="btn" class="btn primary" style="flex:0 0 auto;">ログイン</button>
+        <a class="btn" href="/" style="flex:0 0 auto;">戻る</a>
+        <a class="btn" href="/logout/" style="flex:0 0 auto;">ログアウト</a>
+      </div>
+
+      <p id="msg" class="small"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiPost, setText, $ } from "/assets/app.js";
+
+    $("btn").addEventListener("click", async () => {
+      setText("msg", "処理中...");
+      try {
+        await apiPost("/api/login", { user: $("user").value, password: $("password").value });
+        location.href = "/chat/";
+      } catch (e) {
+        setText("msg", "ログイン失敗: " + (e?.message || e));
+      }
+    });
+  </script>
+</body>
+</html>

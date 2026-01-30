@@ -1,0 +1,44 @@
+<!-- public/logout/index.html -->
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Logout - Simple RAG Chat</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div><strong>Simple RAG Chat</strong></div>
+      <div class="right">
+        <a href="/">Top</a>
+        <a href="/login/">Login</a>
+        <a href="/chat/">Chat</a>
+        <a href="/admin/">Admin</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ログアウト</h2>
+      <p id="msg" class="small">処理中...</p>
+      <div class="btnrow">
+        <a class="btn" href="/">トップへ</a>
+        <a class="btn" href="/login/">ログインへ</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiPost, setText } from "/assets/app.js";
+    (async () => {
+      try {
+        await apiPost("/api/logout", {});
+        setText("msg", "ログアウトしました。");
+      } catch (e) {
+        setText("msg", "ログアウトに失敗: " + (e?.message || e));
+      }
+    })();
+  </script>
+</body>
+</html>

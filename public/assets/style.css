@@ -1,0 +1,277 @@
+/* public/assets/style.css */
+:root {
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --brand: #4f46e5;
+
+  /* chat colors */
+  --chat-user-bg: #4f46e5;
+  --chat-user-fg: #ffffff;
+  --chat-bot-bg: #ffffff;
+  --chat-bot-fg: #111827;
+  --chat-system-bg: rgba(17, 24, 39, 0.04);
+  --chat-system-fg: #374151;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    "Helvetica Neue", Arial, "Noto Sans JP", "Apple Color Emoji",
+    "Segoe UI Emoji";
+  color: var(--text);
+  background: linear-gradient(
+    180deg,
+    #eef2ff 0%,
+    var(--bg) 35%,
+    #ffffff 100%
+  );
+}
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* =====================
+   Layout / Common
+===================== */
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.nav .right a {
+  margin-left: 14px;
+  font-weight: 600;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+}
+
+/* ★ 追加：縦にカードが並んだときの間隔 */
+.card + .card {
+  margin-top: 18px;
+}
+
+.card h2 {
+  margin: 0 0 10px;
+}
+
+.card p {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn.primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: transparent;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: 700;
+}
+
+/* =====================
+   Chat (Bubble UI)
+===================== */
+
+.chatbox {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.95);
+
+  /* 高さ・スクロール */
+  height: 360px;
+  min-height: 260px;
+  max-height: 75vh;
+  overflow: auto;
+
+  /* ユーザーが縦に伸ばせる */
+  resize: vertical;
+
+  /* 吹き出しレイアウト */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  white-space: normal;
+}
+
+/* 行（左右位置） */
+.msg-row {
+  display: flex;
+  width: 100%;
+}
+
+.msg-row.user {
+  justify-content: flex-end;
+}
+
+.msg-row.bot {
+  justify-content: flex-start;
+}
+
+.msg-row.system {
+  justify-content: center;
+}
+
+/* 吹き出し本体 */
+.msg-bubble {
+  max-width: min(680px, 86%);
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+}
+
+/* ユーザー */
+.msg-bubble.user {
+  background: var(--chat-user-bg);
+  color: var(--chat-user-fg);
+  border-color: transparent;
+  border-bottom-right-radius: 6px;
+}
+
+/* Bot */
+.msg-bubble.bot {
+  background: var(--chat-bot-bg);
+  color: var(--chat-bot-fg);
+  border-bottom-left-radius: 6px;
+}
+
+/* System */
+.msg-bubble.system {
+  background: var(--chat-system-bg);
+  color: var(--chat-system-fg);
+  border-color: rgba(17, 24, 39, 0.08);
+  box-shadow: none;
+}
+
+/* 吹き出し内テキスト */
+.msg-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+  font-size: 14px;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
+    Roboto, "Helvetica Neue", Arial, "Noto Sans JP";
+}
+
+/* =====================
+   Footer
+===================== */
+
+.footer {
+  padding: 18px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* =====================
+   Responsive
+===================== */
+
+@media (max-width: 860px) {
+  .container {
+    padding: 16px;
+  }
+
+  .msg-bubble {
+    max-width: 92%;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .nav .right a {
+    margin-left: 0;
+    margin-right: 12px;
+  }
+
+  /* iOSズーム防止 */
+  textarea,
+  input,
+  select {
+    font-size: 16px;
+  }
+
+  .chatbox {
+    height: 300px;
+  }
+
+  .msg-text {
+    font-size: 15px;
+  }
+
+  /* スマホではカード間を少し広めに */
+  .card + .card {
+    margin-top: 22px;
+  }
+}
